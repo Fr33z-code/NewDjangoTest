@@ -1,4 +1,5 @@
 import json
+from itertools import product
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -28,6 +29,8 @@ def add_to_cart_ajax(request):
         if not item_created:
             cart_item.quantity += 1
             cart_item.save()
+        product.count -= 1
+        product.save()
         return JsonResponse({'success': True})
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
@@ -55,7 +58,6 @@ def update_cart(request):
             if new_quantity and new_quantity.isdigit():
                 item.quantity = int(new_quantity)
                 item.save()
-
         return redirect('cart')
     return None
 
@@ -65,7 +67,6 @@ def update_cart(request):
 def update_cart_item(request):
     item_id = request.POST.get('item_id')
     quantity = request.POST.get('quantity')
-
     if not item_id or not quantity:
         return JsonResponse({'success': False, 'error': 'Недопустимые данные'})
 
@@ -76,18 +77,29 @@ def update_cart_item(request):
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Неверное количество'})
 
-    try:
-        item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
-        item.quantity = quantity
-        item.save()
-        return JsonResponse({'success': True})
-    except CartItem.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Товар не найден'})
+    item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+    product = item.product
+    old_quantity = item.quantity
+    delta = quantity - old_quantity
+    if delta > 0 and product.count < delta:
+        return JsonResponse({'success': False, 'error': 'Недостаточно товара на складе'})
+
+
+    product.count -= delta
+    product.save()
+    item.quantity = quantity
+    item.save()
+
+    return JsonResponse({'success': True})
 
 
 @login_required
 def delete_from_cart(request, product_id):
     cart = get_object_or_404(Cart, user=request.user)
     item = get_object_or_404(CartItem, id=product_id, cart=cart)
+    product = get_object_or_404(Product, id=item.product_id)
+    product.count += item.quantity
+    product.save()
     item.delete()
+
     return redirect('view_cart')

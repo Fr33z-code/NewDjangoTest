@@ -2,7 +2,6 @@ from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
@@ -99,7 +98,7 @@ SOCIAL_AUTH_ASSOCIATE_BY_EMAIL = True
 
 YANDEX_CLIENT_ID = config('YANDEX_CLIENT_ID')
 YANDEX_CLIENT_SECRET = config('YANDEX_CLIENT_SECRET')
-YANDEX_REDIRECT_URI = 'http://localhost:8000/yandex/callback/'
+YANDEX_REDIRECT_URI = 'http://localhost:8000/accounts/yandex/callback/'
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
@@ -132,9 +131,12 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
-
+SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
+    'prompt': 'select_account',
+    'access_type': 'online',
+}
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=10),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }

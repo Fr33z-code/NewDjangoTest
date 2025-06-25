@@ -2,12 +2,10 @@ from django.contrib import admin
 from django.contrib.auth.views import LogoutView
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-# from app1.api_views import ProductViewSet, CartViewSet, OrderViewSet, CategoryViewSet
 from catalog.views_api import ProductViewSet, CategoryViewSet
 from cart.views_api import CartViewSet
 from orders.views_api import OrderViewSet
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'cart', CartViewSet, basename='cart')

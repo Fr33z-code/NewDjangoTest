@@ -6,10 +6,6 @@ import requests
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.response import Response
-from rest_framework.decorators import permission_classes, api_view
-from rest_framework.permissions import IsAuthenticated
-
 
 @csrf_exempt
 def signup_view(request):
@@ -51,6 +47,7 @@ def profile_view(request):
     return render(request, 'profile.html', {'username': username})
 
 
+
 def yandex_callback(request):
     code = request.GET.get('code')
     if not code:
@@ -61,6 +58,7 @@ def yandex_callback(request):
         'code': code,
         'client_id': settings.YANDEX_CLIENT_ID,
         'client_secret': settings.YANDEX_CLIENT_SECRET,
+        'redirect_uri': settings.YANDEX_REDIRECT_URI
     }
     response = requests.post(token_url, data=data)
     if response.status_code != 200:
