@@ -38,7 +38,7 @@ class CartViewSet(viewsets.ViewSet):
 
         if total_quantity > product.count:
             total_quantity = product.count
-
+#
         used_quantity = total_quantity - cart_item.quantity
         if used_quantity > product.count:
             return Response({"error": "Недостаточно товара на складе"}, status=400)
