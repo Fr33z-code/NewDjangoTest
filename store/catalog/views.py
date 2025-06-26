@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import render
 
-from catalog.models import Product
+from catalog.models import Product, Category
 
 
 @login_required
@@ -12,16 +12,22 @@ def home(request):
 
 @login_required
 def catalog(request):
-    category = request.GET.get('category')
-    search_query = request.GET.get('search', '')
-    min_price = request.GET.get('min_price')
-    max_price = request.GET.get('max_price')
+    params = request.GET
+    filters = {'in_stock': True}
+    if params.get('category'):
+        filters['category'] = params['category']
 
-    products = Product.objects.filter(in_stock=True)
+    try:
+        if params.get('min_price'):
+            filters['price__gte'] = float(params['min_price'])
+        if params.get('max_price'):
+            filters['price__lte'] = float(params['max_price'])
+    except ValueError:
+        pass
 
-    if category:
-        products = products.filter(category=category)
+    products = Product.objects.filter(**filters)
 
+    search_query = params.get('search', '').strip()
     if search_query:
         output = []
         for product in products:
@@ -29,35 +35,26 @@ def catalog(request):
             if search_query.lower() in a:
                 output.append(product)
         products = output
-
-    if min_price:
-        try:
-            products = products.filter(price__gte=float(min_price))
-        except ValueError:
-            pass
-
-    if max_price:
-        try:
-            products = products.filter(price__lte=float(max_price))
-        except ValueError:
-            pass
+    # if search_query:
+    #     products = products.filter(name__icontains=search_query)
 
     prices = Product.objects.filter(in_stock=True).values_list('price', flat=True)
     min_catalog_price = min(prices) if prices else None
     max_catalog_price = max(prices) if prices else None
 
     paginator = Paginator(products, 12)
-    page_number = request.GET.get('page')
+    page_number = params.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
         'page_obj': page_obj,
         'min_price': min_catalog_price,
         'max_price': max_catalog_price,
-        'min_price_filter': min_price,
-        'max_price_filter': max_price,
-        'categories': dict(Product.CATEGORY_CHOICES),
-        'current_category': category,
+        'min_price_filter': params.get('min_price'),
+        'max_price_filter': params.get('max_price'),
+        'categories': {c.id: c.name for c in Category.objects.all()},
+        'current_category': params.get('category'),
         'search_query': search_query,
     }
+
     return render(request, 'catalog/catalog.html', context)

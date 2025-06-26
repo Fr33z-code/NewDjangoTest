@@ -74,7 +74,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -96,7 +95,6 @@ LOGIN_REDIRECT_URL = 'catalog'
 LOGOUT_REDIRECT_URL = 'login'
 SOCIAL_AUTH_ASSOCIATE_BY_EMAIL = True
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
-
 
 YANDEX_CLIENT_ID = config('YANDEX_CLIENT_ID')
 YANDEX_CLIENT_SECRET = config('YANDEX_CLIENT_SECRET')
@@ -132,6 +130,9 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API for Furs and Fur Coats store',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX_TRIM': True,
+    'SCHEMA_PATH_PREFIX': r'^/'
+
 }
 SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'prompt': 'select_account',

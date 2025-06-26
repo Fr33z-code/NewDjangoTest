@@ -5,10 +5,9 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 import requests
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import logout
 
 
-@csrf_exempt
 def signup_view(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
@@ -22,7 +21,6 @@ def signup_view(request):
     return render(request, 'signup.html', {'form': form})
 
 
-@csrf_exempt
 def login_view(request):
     form = AuthenticationForm(data=request.POST or None)
     if request.method == 'POST':
@@ -89,3 +87,8 @@ def yandex_callback(request):
 def login_error(request):
     error_msg = request.GET.get('message', 'Ошибка при входе. Попробуйте снова.')
     return render(request, 'users/login_error.html', {'error_msg': error_msg})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')

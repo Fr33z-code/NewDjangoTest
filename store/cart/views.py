@@ -1,18 +1,13 @@
 import json
-from itertools import product
-
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-
 from cart.models import CartItem, Cart
 from catalog.models import Product
 
 
 @login_required
-@csrf_exempt
 def add_to_cart_ajax(request):
     if request.method == 'POST':
         data = json.loads(request.body)
@@ -52,7 +47,6 @@ def view_cart(request):
 def update_cart(request):
     if request.method == 'POST':
         cart = get_object_or_404(Cart, user=request.user)
-
         for item in cart.items.all():
             new_quantity = request.POST.get(f'quantity_{item.id}')
             if new_quantity and new_quantity.isdigit():
@@ -83,7 +77,6 @@ def update_cart_item(request):
     delta = quantity - old_quantity
     if delta > 0 and product.count < delta:
         return JsonResponse({'success': False, 'error': 'Недостаточно товара на складе'})
-
 
     product.count -= delta
     product.save()

@@ -1,46 +1,61 @@
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
-from django_filters.rest_framework import DjangoFilterBackend, FilterSet, NumberFilter
-from rest_framework import viewsets
-
-from .models import Product
-from catalog.serializers import ProductSerializer, CategorySerializer
-#
-
-class ProductFilter(FilterSet):
-    min_price = NumberFilter(field_name='price', lookup_expr='gte')
-    max_price = NumberFilter(field_name='price', lookup_expr='lte')
-
-    class Meta:
-        model = Product
-        fields = ['category']
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework import viewsets, permissions
+from .filters import ProductFilter
+from .models import Product, Category
+from .serializers import ProductSerializer, CategorySerializer
+from django_filters.rest_framework import DjangoFilterBackend
 
 
-@extend_schema(tags=["Product"])
-class ProductViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = Product.objects.filter(in_stock=True)
+@extend_schema(tags=["Categories"])
+@extend_schema_view(
+    list=extend_schema(summary="Список категорий", tags=["Categories"]), )
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    lookup_field = 'id'
+
+
+@extend_schema(tags=["Products"])
+class ProductViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ProductFilter
+    http_method_names = ['get', 'put', 'delete', 'post']
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        sort = self.request.query_params.get('sort')
+    @extend_schema(
+        summary="Список продуктов",
+        description="Возвращает список всех продуктов с возможностью фильтрации.",
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
-        sort_options = {
-            'price_asc': 'price',
-            'price_desc': '-price',
-        }
-        return queryset.order_by(sort_options[sort]) if sort in sort_options else queryset
+    @extend_schema(
+        summary="Создать продукт",
+        description="Создает новый продукт. Укажите название, описание и категорию.",
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
+    @extend_schema(
+        summary="Получить продукт",
+        description="Возвращает информацию о продукте по ID.",
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
-@extend_schema(tags=["Category"])
-class CategoryViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
-    @extend_schema(summary="Список категорий товаров")
-    def list(self, request):
-        categories = [{'key': key, 'name': name} for key, name in Product.CATEGORY_CHOICES]
-        serializer = CategorySerializer(categories, many=True)
-        return Response(serializer.data)
+    @extend_schema(
+        summary="Обновить продукт",
+        description="Полностью обновляет данные продукта по ID.",
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Удалить продукт",
+        description="Удаляет продукт по ID.",
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
