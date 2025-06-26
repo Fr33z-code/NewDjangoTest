@@ -5,7 +5,9 @@ from rest_framework.routers import DefaultRouter
 from catalog.views_api import ProductViewSet, CategoryViewSet
 from cart.views_api import CartViewSet
 from orders.views_api import OrderViewSet
+from accounts.views_api import RegisterAPI, LoginAPI
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'cart', CartViewSet, basename='cart')

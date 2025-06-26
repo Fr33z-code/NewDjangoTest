@@ -21,3 +21,9 @@ class CartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
         fields = ['id', 'user', 'items']
+
+
+class CartDeleteResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    returned_to_stock = serializers.IntegerField()
+    remaining_stock = serializers.IntegerField()

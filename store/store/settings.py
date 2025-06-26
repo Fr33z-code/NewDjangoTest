@@ -95,6 +95,8 @@ LOGOUT_URL = 'login'
 LOGIN_REDIRECT_URL = 'catalog'
 LOGOUT_REDIRECT_URL = 'login'
 SOCIAL_AUTH_ASSOCIATE_BY_EMAIL = True
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
+
 
 YANDEX_CLIENT_ID = config('YANDEX_CLIENT_ID')
 YANDEX_CLIENT_SECRET = config('YANDEX_CLIENT_SECRET')
@@ -136,7 +138,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'access_type': 'online',
 }
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }

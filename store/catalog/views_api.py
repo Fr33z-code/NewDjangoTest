@@ -1,3 +1,4 @@
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, NumberFilter
@@ -16,7 +17,9 @@ class ProductFilter(FilterSet):
         fields = ['category']
 
 
+@extend_schema(tags=["Product"])
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
     queryset = Product.objects.filter(in_stock=True)
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend]
@@ -35,6 +38,8 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
 @extend_schema(tags=["Category"])
 class CategoryViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    @extend_schema(summary="Список категорий товаров")
     def list(self, request):
         categories = [{'key': key, 'name': name} for key, name in Product.CATEGORY_CHOICES]
         serializer = CategorySerializer(categories, many=True)

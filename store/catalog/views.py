@@ -17,9 +17,10 @@ def catalog(request):
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
 
-    products = Product.objects.all()
+    products = Product.objects.filter(in_stock=True)
+
     if category:
-        products = products.filter(category=category, in_stock=True)
+        products = products.filter(category=category)
 
     if search_query:
         output = []

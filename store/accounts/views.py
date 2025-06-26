@@ -7,12 +7,14 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 
+
 @csrf_exempt
 def signup_view(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
             login(request, user)
             return redirect('catalog')
     else:
@@ -45,7 +47,6 @@ def profile_view(request):
     if user.password == '':
         username = username.split('_')[0]
     return render(request, 'profile.html', {'username': username})
-
 
 
 def yandex_callback(request):
@@ -83,3 +84,8 @@ def yandex_callback(request):
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
     return redirect('catalog')
+
+
+def login_error(request):
+    error_msg = request.GET.get('message', 'Ошибка при входе. Попробуйте снова.')
+    return render(request, 'users/login_error.html', {'error_msg': error_msg})

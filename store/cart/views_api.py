@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 
 from .models import Cart, CartItem
 from catalog.models import Product
-from .serializers import CartItemSerializer
+from .serializers import CartItemSerializer, CartDeleteResponseSerializer
 
 
 @extend_schema(tags=["Cart"])
@@ -34,25 +35,25 @@ class CartViewSet(viewsets.ViewSet):
         cart, _ = Cart.objects.get_or_create(user=request.user)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
 
-        total_quantity = cart_item.quantity + quantity if not created else quantity
+        available = product.count + (cart_item.quantity if not created else 0)
+        requested_total = (cart_item.quantity + quantity) if not created else quantity
 
-        if total_quantity > product.count:
-            total_quantity = product.count
-#
-        used_quantity = total_quantity - cart_item.quantity
-        if used_quantity > product.count:
-            return Response({"error": "Недостаточно товара на складе"}, status=400)
+        if requested_total > available:
+            return Response({
+                "error": f"Недостаточно товара. Доступно: {available - (cart_item.quantity if not created else 0)}"
+            }, status=400)
 
-        cart_item.quantity = total_quantity
+        cart_item.quantity = requested_total
         cart_item.save()
 
-        product.count -= used_quantity
+        product.count = available - requested_total
         product.save()
 
         serializer = CartItemSerializer(cart_item)
         return Response(serializer.data)
 
-    @extend_schema(summary="Обновить количество товара", request=CartItemSerializer,
+    @extend_schema(summary="Обновить количество товара в корзине",
+                   request=CartItemSerializer,
                    responses={200: CartItemSerializer})
     @action(detail=False, methods=["put"])
     def update_item(self, request):
@@ -64,43 +65,81 @@ class CartViewSet(viewsets.ViewSet):
 
         try:
             quantity = int(quantity)
-            if quantity < 1:
+            if quantity < 0:
                 raise ValueError
         except ValueError:
-            return Response({"error": "Неверное количество"}, status=400)
+            return Response({"error": "Количество должно быть положительным числом"}, status=400)
 
-        item = get_object_or_404(CartItem, product_id=product_id, cart__user=request.user)
-        product = item.product
+        with transaction.atomic():
+            item = get_object_or_404(
+                CartItem.objects.select_for_update(),
+                product_id=product_id,
+                cart__user=request.user
+            )
+            product = Product.objects.select_for_update().get(id=product_id)
 
-        delta = quantity - item.quantity
+            delta = quantity - item.quantity
 
-        if delta > 0:
-            if delta > product.count:
-                quantity = item.quantity + product.count
-                delta = product.count
-            product.count -= delta
+            if delta > 0:
+                available = product.count
+                if delta > available:
+                    return Response({
+                        "error": f"Недостаточно товара на складе. Доступно: {available}"
+                    }, status=400)
+
+                product.count -= delta
+                item.quantity = quantity
+
+            elif delta < 0:
+                returned = abs(delta)
+                if (product.count + returned) > product.initial_count:
+                    returned = product.initial_count - product.count
+                    item.quantity = item.quantity - returned
+                else:
+                    item.quantity = quantity
+
+                product.count += returned
+
             product.save()
-        elif delta < 0:
-            product.count += abs(delta)
-            product.save()
+            item.save()
 
-        item.quantity = quantity
-        item.save()
-        serializer = CartItemSerializer(item)
-        return Response(serializer.data)
+            serializer = CartItemSerializer(item)
+            return Response({
+                "cart_item": serializer.data,
+                "remaining_stock": product.count
+            })
 
-    @extend_schema(summary="Удалить товар из корзины", request=CartItemSerializer, responses={200: dict})
+    @extend_schema(summary="Удалить товар из корзины",
+                   request=CartItemSerializer,
+                   responses={200: CartDeleteResponseSerializer})
     @action(detail=False, methods=["delete"])
     def delete_item(self, request):
-        item_id = request.data.get("product_id")
-        if not item_id:
+        product_id = request.data.get("product_id")
+        if not product_id:
             return Response({"error": "product_id обязателен"}, status=400)
 
-        item = get_object_or_404(CartItem, product_id=item_id, cart__user=request.user)
+        with transaction.atomic():
+            item = get_object_or_404(
+                CartItem.objects.select_for_update(),
+                product_id=product_id,
+                cart__user=request.user
+            )
+            product = Product.objects.select_for_update().get(id=product_id)
 
-        product = item.product
-        product.count += item.quantity
-        product.save()
+            returned = item.quantity
+            new_count = product.count + returned
 
-        item.delete()
-        return Response({"success": True})
+            if new_count > product.initial_count:
+                returned = product.initial_count - product.count
+                product.count = product.initial_count
+            else:
+                product.count = new_count
+
+            product.save()
+            item.delete()
+
+            return Response({
+                "success": True,
+                "returned_to_stock": returned,
+                "remaining_stock": product.count
+            })

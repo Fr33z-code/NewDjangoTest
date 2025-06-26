@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Каталог - Меха и шубы{% endblock %}
 
 {% block content %}
@@ -17,7 +16,6 @@
 
 <div class="container mt-4">
     <div class="row">
-        <!-- Фильтры -->
         <div class="col-md-3">
             <div class="card mb-4">
                 <div class="card-header bg-dark text-white">
@@ -50,7 +48,6 @@
             </div>
         </div>
 
-        <!-- Товары -->
         <div class="col-md-9">
             <div class="row">
                 {% for product in page_obj %}

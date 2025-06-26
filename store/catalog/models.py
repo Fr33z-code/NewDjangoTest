@@ -24,7 +24,8 @@ class Product(models.Model):
     image = CloudinaryField('https://res.cloudinary.com/da74tpgsc/image/upload/v1750327746/images_hqlquy.jpg')
     in_stock = models.BooleanField(default=True, verbose_name='В наличии')
     created_at = models.DateTimeField(null=True, blank=True)
-    count = models.IntegerField(default=150)
+    initial_count = models.PositiveIntegerField(verbose_name="Изначальное количество",default=150)
+    count = models.PositiveIntegerField(verbose_name="Текущий остаток", default=150)
 
     def __str__(self):
         return self.name
