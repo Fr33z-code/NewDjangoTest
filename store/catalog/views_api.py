@@ -6,7 +6,7 @@ from rest_framework import viewsets
 
 from .models import Product
 from catalog.serializers import ProductSerializer, CategorySerializer
-
+#
 
 class ProductFilter(FilterSet):
     min_price = NumberFilter(field_name='price', lookup_expr='gte')
