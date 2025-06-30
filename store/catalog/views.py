@@ -3,7 +3,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render
 
 from catalog.models import Product, Category
-#
+
 
 @login_required
 def home(request):

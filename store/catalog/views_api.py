@@ -27,35 +27,30 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Список продуктов",
-        description="Возвращает список всех продуктов с возможностью фильтрации.",
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @extend_schema(
         summary="Создать продукт",
-        description="Создает новый продукт. Укажите название, описание и категорию.",
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
     @extend_schema(
         summary="Получить продукт",
-        description="Возвращает информацию о продукте по ID.",
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(
         summary="Обновить продукт",
-        description="Полностью обновляет данные продукта по ID.",
     )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
     @extend_schema(
         summary="Удалить продукт",
-        description="Удаляет продукт по ID.",
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
