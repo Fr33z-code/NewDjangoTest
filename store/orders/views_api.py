@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiExample
-from django.db import transaction
+from django.db import transactin
 
 from .models import Order, OrderItem
 from .serializers import OrderSerializer
@@ -45,7 +45,6 @@ class OrderViewSet(viewsets.ViewSet):
             )
         ]
     )
-
     def create(self, request):
         user = request.user
         cart_item_ids = request.data.get('cart_item_ids', [])
