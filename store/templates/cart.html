@@ -63,7 +63,10 @@
             </td>
             <td class="item-total">{{ item.total_price }} руб.</td>
             <td>
-                <a href="{% url 'delete_from_cart' item.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                <form method="post" action="{% url 'delete_from_cart' item.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                </form>
             </td>
         </tr>
         {% endfor %}
@@ -73,7 +76,10 @@
     <hr/>
     <h4>Общая сумма заказа: <span id="total-amount">{{ total_amount }}</span> руб.</h4>
     <div class="d-flex gap-2">
-        <a href="{% url 'create_order_for_user' %}" class="btn btn-success">Оформить заказ</a>
+        <form method="post" action="{% url 'create_order_for_user' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Оформить заказ</button>
+        </form>
         <a href="{% url 'catalog' %}" class="btn btn-primary">Продолжить покупки</a>
     </div>
 

@@ -1,24 +1,19 @@
+from django.views import View
 from django.shortcuts import redirect
-
+from django.http import HttpResponseBadRequest, HttpResponse
+from orders.service import OrderService
 from cart.models import Cart, CartItem
 from orders.models import Order, OrderItem
 
 
-def create_order_for_user(request):
-    cart = Cart.objects.get(user_id=request.user)
-    items = CartItem.objects.filter(cart_id=cart.id)
-    if not items.exists():
-        raise ValueError("Корзина пуста")
-    order = Order.objects.create(
-        user=request.user,
-        total_price=sum(item.product.price * item.quantity for item in items)
-    )
-    for item in items:
-        OrderItem.objects.create(
-            order=order,
-            product=item.product,
-            quantity=item.quantity,
-            price_per_item=item.product.price
-        )
-    items.delete()
-    return redirect('home')
+class CreateOrderView(View):
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("Отправьте POST-запрос для создания заказа.")
+
+    def post(self, request, *args, **kwargs):
+        service = OrderService(request.user)
+        try:
+            service.create_order_from_cart()
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+        return redirect('home')

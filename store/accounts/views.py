@@ -1,94 +1,90 @@
+from cloudinary.provisioning import account_config
 from django.conf import settings
-from django.contrib.auth import get_user_model, login, authenticate
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model, login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-import requests
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import FormView, TemplateView, RedirectView, View
+from django.shortcuts import redirect, render
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
-from django.contrib.auth import logout
+import requests
+from rest_framework.permissions import IsAuthenticated
+
+from accounts.service import YandexAuthService, AccountService
 
 
-def signup_view(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
-            login(request, user)
+class SignupView(FormView):
+    template_name = 'signup.html'
+    form_class = UserCreationForm
+    success_url = '/catalog'
+
+    def form_valid(self, form):
+        account_service = AccountService()
+        account_service.register_user(self.request, form)
+        return super().form_valid(form)
+
+
+class LoginView(FormView):
+    template_name = 'login.html'
+    form_class = AuthenticationForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['yandex_client_id'] = settings.YANDEX_CLIENT_ID
+        context['redirect_uri'] = settings.YANDEX_REDIRECT_URI
+        return context
+
+    def form_valid(self, form):
+        username = form.cleaned_data['username']
+        password = form.cleaned_data['password']
+        account_service = AccountService()
+        user = account_service.authenticate_and_login(self.request, username, password)
+        if user:
             return redirect('catalog')
-    else:
-        form = UserCreationForm()
-    return render(request, 'signup.html', {'form': form})
+        return self.form_invalid(form)
 
 
-def login_view(request):
-    form = AuthenticationForm(data=request.POST or None)
-    if request.method == 'POST':
-        if form.is_valid():
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect('catalog')
-    return render(request, 'login.html', {
-        'form': form,
-        'yandex_client_id': settings.YANDEX_CLIENT_ID,
-        'redirect_uri': settings.YANDEX_REDIRECT_URI,
-    })
+class ProfileView(TemplateView):
+    permission_classes = [IsAuthenticated]
+    template_name = 'profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        account_service = AccountService()
+        context['username'] = account_service.get_display_username(user)
+        return context
 
 
-@login_required
-def profile_view(request):
-    user = request.user
-    username = user.username
-    if user.password == '':
-        username = username.split('_')[0]
-    return render(request, 'profile.html', {'username': username})
+class YandexCallbackView(View):
+    def get(self, request):
+        code = request.GET.get('code')
+        if not code:
+            return redirect('login')
+
+        service = YandexAuthService()
+        try:
+            access_token = service.get_access_token(code)
+            user_data = service.get_user_info(access_token)
+            user = service.get_or_create_user(user_data)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        return redirect('catalog')
 
 
-def yandex_callback(request):
-    code = request.GET.get('code')
-    if not code:
-        return redirect('login')
-    token_url = 'https://oauth.yandex.ru/token'
-    data = {
-        'grant_type': 'authorization_code',
-        'code': code,
-        'client_id': settings.YANDEX_CLIENT_ID,
-        'client_secret': settings.YANDEX_CLIENT_SECRET,
-        'redirect_uri': settings.YANDEX_REDIRECT_URI
-    }
-    response = requests.post(token_url, data=data)
-    if response.status_code != 200:
-        return JsonResponse({'error': 'Failed to get access token'}, status=400)
+class LoginErrorView(TemplateView):
+    template_name = 'users/login_error.html'
 
-    token_data = response.json()
-    access_token = token_data.get('access_token')
-
-    user_info_url = 'https://login.yandex.ru/info'
-    headers = {'Authorization': f'OAuth {access_token}'}
-    user_response = requests.get(user_info_url, headers=headers)
-
-    if user_response.status_code != 200:
-        return JsonResponse({'error': 'Failed to fetch user info'}, status=400)
-
-    user_data = user_response.json()
-    yandex_id = user_data.get('id')
-    email = user_data.get('default_email') or f'{yandex_id}@yandex.fake'
-    username = f"{user_data.get('login')}_{yandex_id}"
-    User = get_user_model()
-    user, created = User.objects.get_or_create(username=username, defaults={'email': email})
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-
-    return redirect('catalog')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['error_msg'] = self.request.GET.get('message', 'Ошибка при входе. Попробуйте снова.')
+        return context
 
 
-def login_error(request):
-    error_msg = request.GET.get('message', 'Ошибка при входе. Попробуйте снова.')
-    return render(request, 'users/login_error.html', {'error_msg': error_msg})
+class LogoutView(RedirectView):
+    pattern_name = 'login'
 
-
-def logout_view(request):
-    logout(request)
-    return redirect('login')
+    def get(self, request, *args, **kwargs):
+        logout(request)
+        return super().get(request, *args, **kwargs)
