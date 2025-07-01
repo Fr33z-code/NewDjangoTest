@@ -1,5 +1,7 @@
 from catalog.models import Product, Category
 from core.BaseService import BaseService
+from django.utils.module_loading import import_string
+
 
 class CatalogService(BaseService):
     @staticmethod
@@ -15,7 +17,6 @@ class CatalogService(BaseService):
                 filters['price__lte'] = float(params['max_price'])
         except ValueError:
             pass
-
         return filters
 
     @staticmethod

@@ -56,9 +56,7 @@ class AddToCartView(View):
         return JsonResponse({'success': True})
 
 
-class CartView(View):
-    permission_classes = [IsAuthenticated]
-
+class CartView(LoginRequiredMixin, View):
     def get(self, request):
         cart = CartService.get_or_create_cart(request.user)
         cart_items = CartService.get_cart_items(cart)

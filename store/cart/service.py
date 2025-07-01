@@ -5,9 +5,6 @@ from django.shortcuts import get_object_or_404
 
 
 class CartService(BaseService):
-    def __init__(self):
-        super().__init__()
-
     @staticmethod
     def get_or_create_cart(user):
         return Cart.objects.get_or_create(user=user)[0]

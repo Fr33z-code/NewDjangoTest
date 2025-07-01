@@ -1,6 +1,7 @@
 from cloudinary.provisioning import account_config
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, authenticate, logout
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import FormView, TemplateView, RedirectView, View

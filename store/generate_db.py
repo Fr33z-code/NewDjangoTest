@@ -7,11 +7,10 @@ from django.utils import timezone
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'store.settings')
 django.setup()
 
-from catalog.models import Product, Category  # Добавляем импорт Category
+from catalog.models import Product, Category
 
 
 def create_categories():
-    """Создаем категории, если их нет"""
     categories_data = {
         1: 'Меховые изделия',
         2: 'Шубы',
@@ -31,13 +30,8 @@ def create_categories():
 
 
 def create_products():
-    # Сначала убедимся, что категории существуют
     create_categories()
-
-    # Очищаем существующие товары
     Product.objects.all().delete()
-
-    # Базовые данные для генерации товаров
     PRODUCT_TYPES = {
         'Меховые изделия': [
             ('Жилет из лисы', 60000, 120000),
@@ -71,32 +65,21 @@ def create_products():
 
     items = []
     current_date = timezone.now()
-
-    # Получаем все существующие категории
     categories = list(Category.objects.all())
     if not categories:
         raise Exception("Нет категорий в базе данных!")
 
-    # Создаем 100 товаров
     for i in range(100):
-        # Выбираем категорию (равномерное распределение)
         category = categories[i % len(categories)]
         category_name = category.name
-
-        # Выбираем случайный тип товара для категории
         product_type = random.choice(PRODUCT_TYPES[category_name])
         name = f"{product_type[0]} «Модель {i + 1}»"
-
-        # Генерируем цену в указанном диапазоне
         price = random.randint(product_type[1], product_type[2])
-
-        # Каждый 10-й товар будет отсутствовать
         in_stock = i % 10 != 0
-
         items.append(Product(
             name=name,
             price=price,
-            category=category,  # Используем объект категории вместо category_id
+            category=category,
             description=f"Описание для {name}. Категория: {category_name}.",
             in_stock=in_stock,
             created_at=current_date - timedelta(days=i),
@@ -104,7 +87,6 @@ def create_products():
             count=150 if in_stock else 0
         ))
 
-    # Создаем товары партиями по 20 штук
     batch_size = 20
     for i in range(0, len(items), batch_size):
         Product.objects.bulk_create(items[i:i + batch_size])

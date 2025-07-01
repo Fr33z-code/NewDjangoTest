@@ -6,7 +6,6 @@ from django.core.exceptions import ObjectDoesNotExist
 
 class OrderService(BaseService):
     def __init__(self, user):
-        super().__init__()
         self.user = user
 
     def create_order_from_cart(self):

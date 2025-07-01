@@ -5,15 +5,10 @@ import requests
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 
-
-
 User = get_user_model()
 
 
 class AccountService(BaseService):
-    def __init__(self):
-        super().__init__()
-
     @staticmethod
     def register_user(request, form):
         user = form.save()
@@ -38,9 +33,6 @@ class AccountService(BaseService):
 
 
 class YandexAuthService(BaseService):
-    def __init__(self):
-        super().__init__()
-
     @staticmethod
     def get_access_token(code):
         token_url = 'https://oauth.yandex.ru/token'
