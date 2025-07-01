@@ -3,6 +3,7 @@ from cart.models import Cart, CartItem
 from core.BaseService import BaseService
 from django.shortcuts import get_object_or_404
 
+
 class CartService(BaseService):
     def __init__(self):
         super().__init__()
@@ -50,3 +51,24 @@ class CartService(BaseService):
         product.count += item.quantity
         product.save()
         item.delete()
+
+    @staticmethod
+    def add_product_to_cart(user, product_id):
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return False, 'Product not found'
+
+        if product.count <= 0:
+            return False, 'Товара нет в наличии'
+
+        cart = Cart.objects.get_or_create(user=user)[0]
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, defaults={'quantity': 1})
+
+        if not created:
+            cart_item.quantity += 1
+            cart_item.save()
+
+        product.count -= 1
+        product.save()
+        return True, None

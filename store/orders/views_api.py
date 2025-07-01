@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiExample
-from django.db import transactin
+from django.db import transaction
 
 from .models import Order, OrderItem
 from .serializers import OrderSerializer

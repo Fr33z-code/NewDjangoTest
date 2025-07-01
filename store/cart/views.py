@@ -12,53 +12,48 @@ from cart.service import CartService
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.mixins import LoginRequiredMixin
+from cart.service import CartService
+from rest_framework.views import APIView
 
 
-class CartUpdateView(generics.GenericAPIView):
-    permission_classes = []
-    request_serializer_class = ''
-    serializer_class = ''
-
-    def post(self):
-        pass
-
-
-# class AddToCartAjaxView(View):
-#     def post(self, request, *args, **kwargs):
-#         try:
-#             data = json.loads(request.body)
-#             product_id = data.get('product_id')
-#             if not product_id:
-#                 return JsonResponse({'success': False, 'error': 'No product id'})
+# class CartUpdateView(generics.GenericAPIView):
+#     permission_classes = []
+#     request_serializer_class = ''
+#     serializer_class = ''
 #
-#             service = CartService()
-#             service.add_product_to_cart(request.user, product_id)
-#
-#             return JsonResponse({'success': True})
-#
-#         except Exception as e:
-#             return JsonResponse({'success': False, 'error': str(e)})
-@login_required
-def add_to_cart_ajax(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
+#     def post(self):
+#         pass
+
+class AddToCartView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
         product_id = data.get('product_id')
         if not product_id:
-            return JsonResponse({'success': False, 'error': 'No product id'})
+            return JsonResponse({'success': False, 'error': 'No product id'}, status=400)
+
         try:
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Product not found'})
+            return JsonResponse({'success': False, 'error': 'Product not found'}, status=404)
 
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        cart_item, item_created = CartItem.objects.get_or_create(cart=cart, product=product, defaults={'quantity': 1})
-        if not item_created:
+        if product.count <= 0:
+            return JsonResponse({'success': False, 'error': 'Товара нет в наличии'}, status=400)
+
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, defaults={'quantity': 1})
+
+        if not created:
             cart_item.quantity += 1
             cart_item.save()
+
         product.count -= 1
         product.save()
+
         return JsonResponse({'success': True})
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
 class CartView(View):
