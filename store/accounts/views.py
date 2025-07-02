@@ -9,7 +9,6 @@ from django.shortcuts import redirect, render
 from django.http import JsonResponse
 import requests
 from rest_framework.permissions import IsAuthenticated
-
 from accounts.service import YandexAuthService, AccountService
 
 
@@ -44,8 +43,7 @@ class LoginView(FormView):
         return self.form_invalid(form)
 
 
-class ProfileView(TemplateView):
-    permission_classes = [IsAuthenticated]
+class ProfileView(LoginRequiredMixin, TemplateView):
     template_name = 'profile.html'
 
     def get_context_data(self, **kwargs):

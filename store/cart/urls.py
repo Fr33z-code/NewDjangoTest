@@ -7,5 +7,5 @@ urlpatterns = [
     path('add/', AddToCartView.as_view(), name='add_to_cart_ajax'),
     path('update/', UpdateCartView.as_view(), name='update_cart'),
     path('update-item/', UpdateCartItemView.as_view(), name='update_cart_item'),
-    path('delete/<int:item_id>/', DeleteFromCartView.as_view(), name='delete_from_cart'),
+    path('delete/<int:item_id>/', DeleteFromCartView.as_view(), name='delete_from_cart')
 ]

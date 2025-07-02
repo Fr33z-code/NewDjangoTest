@@ -1,4 +1,4 @@
-from django.views import View
+from django.views.generic import View
 from django.shortcuts import redirect
 from django.http import HttpResponseBadRequest, HttpResponse
 from orders.service import OrderService
@@ -7,9 +7,6 @@ from orders.models import Order, OrderItem
 
 
 class CreateOrderView(View):
-    def get(self, request, *args, **kwargs):
-        return HttpResponse("Отправьте POST-запрос для создания заказа.")
-
     def post(self, request, *args, **kwargs):
         service = OrderService(request.user)
         try:

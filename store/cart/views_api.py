@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 
 from .models import Cart, CartItem
 from catalog.models import Product
-from .serializers import CartItemSerializer, CartDeleteResponseSerializer
+from .serializers import CartItemSerializer, ResponseCartDeleteResponseSerializer
 
 
 @extend_schema(tags=["Cart"])
@@ -111,7 +111,7 @@ class CartViewSet(viewsets.ViewSet):
 
     @extend_schema(summary="Удалить товар из корзины",
                    request=CartItemSerializer,
-                   responses={200: CartDeleteResponseSerializer})
+                   responses={200: ResponseCartDeleteResponseSerializer})
     @action(detail=False, methods=["delete"])
     def delete_item(self, request):
         product_id = request.data.get("product_id")

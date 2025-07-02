@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import UserSerializer, LoginSerializer
+from .serializers import UserSerializer, RequestLoginSerializer
 
 
 @extend_schema(tags=["Accounts"])
@@ -22,9 +22,10 @@ class RegisterAPI(generics.GenericAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
+
 @extend_schema(tags=["Accounts"])
 class LoginAPI(generics.GenericAPIView):
-    serializer_class = LoginSerializer
+    serializer_class = RequestLoginSerializer
 
     @extend_schema(summary="Войти в аккаунт")
     def post(self, request, *args, **kwargs):

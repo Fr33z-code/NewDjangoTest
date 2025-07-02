@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample
 from django.db import transaction
 
 from .models import Order, OrderItem
-from .serializers import OrderSerializer
+from .serializers import RequestOrderSerializer
 from cart.models import Cart, CartItem
 
 
@@ -28,10 +28,11 @@ class OrderViewSet(viewsets.ViewSet):
             'required': []
         },
         responses={
-            201: OrderSerializer,
+            201: RequestOrderSerializer,
             400: {"description": "Указанные товары не найдены в корзине или корзина пуста"},
             404: {"description": "Корзина не найдена"}
         },
+
         examples=[
             OpenApiExample(
                 "Заказ конкретных товаров",
@@ -79,7 +80,7 @@ class OrderViewSet(viewsets.ViewSet):
                     )
 
                 cart_items.delete()
-                serializer = OrderSerializer(order)
+                serializer = RequestOrderSerializer(order)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except Cart.DoesNotExist:
