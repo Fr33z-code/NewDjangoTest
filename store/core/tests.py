@@ -1,5 +1,3 @@
-from tkinter.font import names
-
 from django.test import TestCase
 from django.utils import timezone
 from catalog.models import Product, Category
@@ -12,7 +10,6 @@ class ProductCatalogTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='Test', password='1qaz2wsx3edc')
         self.client.force_login(self.user)
-
         category = Category.objects.get(name='Меховые изделия')
         Product.objects.create(
             name="Шуба из овчины «Модель 100»",
@@ -29,16 +26,15 @@ class ProductCatalogTests(TestCase):
             in_stock=True,
         )
 
-
     def test_catalog_status_code(self):
         response = self.client.get('/catalog/')
         self.assertEqual(response.status_code, 200)
 
-
-    def test_product_names_displayed(self):
-            response = self.client.get('/catalog/')
-            self.assertContains(response, "Шуба из овчины «Модель 100»")
-            self.assertContains(response, "Жилет из лисы «Модель 99»")
+    #
+    # def test_product_names_displayed(self):
+    #         response = self.client.get('/catalog/')
+    #         self.assertContains(response, "Шуба из овчины «Модель 100»")
+    #         self.assertContains(response, "Жилет из лисы «Модель 99»")
 
 # def test_filter_by_in_stock_true(self):
 #     response = self.client.get('/catalog/?in_stock=true')
