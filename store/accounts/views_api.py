@@ -4,8 +4,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer, RequestLoginSerializer
 
 
-#todo посмотри либу drf_yasg
-
 class RegisterAPI(generics.GenericAPIView):
     serializer_class = UserSerializer
 
@@ -19,7 +17,6 @@ class RegisterAPI(generics.GenericAPIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }, status=status.HTTP_201_CREATED)
-
 
 
 class LoginAPI(generics.GenericAPIView):
