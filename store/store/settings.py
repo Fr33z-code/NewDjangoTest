@@ -26,7 +26,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'social_django',
-    'rest_framework_simplejwt'
+    'rest_framework_simplejwt',
+    'drf_yasg'
 ]
 
 CLOUDINARY_STORAGE = {
