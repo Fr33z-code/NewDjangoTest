@@ -6,159 +6,23 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from django.utils.decorators import method_decorator
-
+from cart.service import ApiCartService
+from rest_framework.exceptions import ValidationError
 from .models import Cart, CartItem
 from catalog.models import Product
 from .serializers import CartItemSerializer, ResponseCartDeleteResponseSerializer, ResponseCartSerializer
 
 
-#
-# @extend_schema(tags=["Cart"])
-# class CartViewSet(viewsets.ViewSet):
-#     permission_classes = [IsAuthenticated]
-#
-#     @extend_schema(summary="Просмотр корзины", responses={200: CartItemSerializer(many=True)})
-#     def list(self, request):
-#         cart, _ = Cart.objects.get_or_create(user=request.user)
-#         items = CartItem.objects.filter(cart=cart)
-#         serializer = CartItemSerializer(items, many=True)
-#         return Response(serializer.data)
-#
-#     @extend_schema(summary="Добавить товар в корзину", request=CartItemSerializer, responses={200: CartItemSerializer})
-#     @action(detail=False, methods=["post"])
-#     def add_item(self, request):
-#         product_id = request.data.get("product_id")
-#         quantity = int(request.data.get("quantity", 1))
-#
-#         if not product_id:
-#             return Response({"error": "product_id обязателен"}, status=400)
-#
-#         product = get_object_or_404(Product, id=product_id)
-#         cart, _ = Cart.objects.get_or_create(user=request.user)
-#         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-#
-#         available = product.count + (cart_item.quantity if not created else 0)
-#         requested_total = (cart_item.quantity + quantity) if not created else quantity
-#
-#         if requested_total > available:
-#             return Response({
-#                 "error": f"Недостаточно товара. Доступно: {available - (cart_item.quantity if not created else 0)}"
-#             }, status=400)
-#
-#         cart_item.quantity = requested_total
-#         cart_item.save()
-#
-#         product.count = available - requested_total
-#         product.save()
-#
-#         serializer = CartItemSerializer(cart_item)
-#         return Response(serializer.data)
-#
-#     @extend_schema(summary="Обновить количество товара в корзине",
-#                    request=CartItemSerializer,
-#                    responses={200: CartItemSerializer})
-#     @action(detail=False, methods=["put"])
-#     def update_item(self, request):
-#         product_id = request.data.get("product_id")
-#         quantity = request.data.get("quantity")
-#         if not product_id or not quantity:
-#             return Response({"error": "product_id и quantity обязательны"}, status=400)
-#
-#         try:
-#             quantity = int(quantity)
-#             if quantity < 0:
-#                 raise ValueError
-#         except ValueError:
-#             return Response({"error": "Количество должно быть положительным числом"}, status=400)
-#
-#         with transaction.atomic():
-#             item = get_object_or_404(
-#                 CartItem.objects.select_for_update(),
-#                 product_id=product_id,
-#                 cart__user=request.user
-#             )
-#             product = Product.objects.select_for_update().get(id=product_id)
-#
-#             delta = quantity - item.quantity
-#
-#             if delta > 0:
-#                 available = product.count
-#                 if delta > available:
-#                     return Response({
-#                         "error": f"Недостаточно товара на складе. Доступно: {available}"
-#                     }, status=400)
-#
-#                 product.count -= delta
-#                 item.quantity = quantity
-#
-#             elif delta < 0:
-#                 returned = abs(delta)
-#                 if (product.count + returned) > product.initial_count:
-#                     returned = product.initial_count - product.count
-#                     item.quantity = item.quantity - returned
-#                 else:
-#                     item.quantity = quantity
-#
-#                 product.count += returned
-#
-#             product.save()
-#             item.save()
-#
-#             serializer = CartItemSerializer(item)
-#             return Response({
-#                 "cart_item": serializer.data,
-#                 "remaining_stock": product.count
-#             })
-#
-#     @extend_schema(summary="Удалить товар из корзины",
-#                    request=CartItemSerializer,
-#                    responses={200: ResponseCartDeleteResponseSerializer})
-#     @action(detail=False, methods=["delete"])
-#     def delete_item(self, request):
-#         product_id = request.data.get("product_id")
-#         if not product_id:
-#             return Response({"error": "product_id обязателен"}, status=400)
-#
-#         with transaction.atomic():
-#             item = get_object_or_404(
-#                 CartItem.objects.select_for_update(),
-#                 product_id=product_id,
-#                 cart__user=request.user
-#             )
-#             product = Product.objects.select_for_update().get(id=product_id)
-#
-#             returned = item.quantity
-#             new_count = product.count + returned
-#
-#             if new_count > product.initial_count:
-#                 returned = product.initial_count - product.count
-#                 product.count = product.initial_count
-#             else:
-#                 product.count = new_count
-#
-#             product.save()
-#             item.delete()
-#
-#             return Response({
-#                 "success": True,
-#                 "returned_to_stock": returned,
-#                 "remaining_stock": product.count
-#             })
 @method_decorator(name='get', decorator=swagger_auto_schema(tags=['Cart']))
 class ViewCartAPIView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ResponseCartSerializer
 
-    # def get(self, request, *args, **kwargs):
-    #     cart, _ = Cart.objects.get_or_create(user=request.user)
-    #     items = CartItem.objects.filter(cart=cart)
-    #     serializer = CartItemSerializer(items, many=True)
-    #     return Response(serializer.data)
-
     def get(self, request, *args, **kwargs):
         cart, _ = Cart.objects.get_or_create(user=request.user)
         serializer = self.get_serializer(cart)
         return Response(serializer.data)
+
 
 @method_decorator(name='post', decorator=swagger_auto_schema(tags=['Cart']))
 class AddToCartAPIView(generics.GenericAPIView):
@@ -168,30 +32,15 @@ class AddToCartAPIView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         product_id = request.data.get("product_id")
         quantity = int(request.data.get("quantity", 1))
+        service = ApiCartService()
+        try:
+            cart_item = service.add_product_to_cart(request.user, product_id, quantity)
+        except ValidationError as e:
+            return Response({"error": str(e.detail)}, status=400)
 
-        if not product_id:
-            return Response({"error": "product_id обязателен"}, status=400)
-
-        product = get_object_or_404(Product, id=product_id)
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-
-        available = product.count + (cart_item.quantity if not created else 0)
-        requested_total = (cart_item.quantity + quantity) if not created else quantity
-
-        if requested_total > available:
-            return Response({
-                "error": f"Недостаточно товара. Доступно: {available - (cart_item.quantity if not created else 0)}"
-            }, status=400)
-
-        cart_item.quantity = requested_total
-        cart_item.save()
-
-        product.count = available - requested_total
-        product.save()
-
-        serializer = CartItemSerializer(cart_item)
+        serializer = self.get_serializer(cart_item)
         return Response(serializer.data)
+
 
 @method_decorator(name='put', decorator=swagger_auto_schema(tags=['Cart']))
 class UpdateCartItemAPIView(generics.GenericAPIView):
@@ -201,54 +50,21 @@ class UpdateCartItemAPIView(generics.GenericAPIView):
     def put(self, request, *args, **kwargs):
         product_id = request.data.get("product_id")
         quantity = request.data.get("quantity")
-        if not product_id or not quantity:
+
+        if not product_id or quantity is None:
             return Response({"error": "product_id и quantity обязательны"}, status=400)
 
         try:
-            quantity = int(quantity)
-            if quantity < 0:
-                raise ValueError
-        except ValueError:
-            return Response({"error": "Количество должно быть положительным числом"}, status=400)
+            item, remaining_stock = ApiCartService.update_cart_item(request.user, product_id, quantity)
+        except ValidationError as e:
+            return Response({"error": str(e.detail)}, status=400)
 
-        with transaction.atomic():
-            item = get_object_or_404(
-                CartItem.objects.select_for_update(),
-                product_id=product_id,
-                cart__user=request.user
-            )
-            product = Product.objects.select_for_update().get(id=product_id)
+        serializer = self.get_serializer(item)
+        return Response({
+            "cart_item": serializer.data,
+            "remaining_stock": remaining_stock
+        })
 
-            delta = quantity - item.quantity
-
-            if delta > 0:
-                available = product.count
-                if delta > available:
-                    return Response({
-                        "error": f"Недостаточно товара на складе. Доступно: {available}"
-                    }, status=400)
-
-                product.count -= delta
-                item.quantity = quantity
-
-            elif delta < 0:
-                returned = abs(delta)
-                if (product.count + returned) > product.initial_count:
-                    returned = product.initial_count - product.count
-                    item.quantity = item.quantity - returned
-                else:
-                    item.quantity = quantity
-
-                product.count += returned
-
-            product.save()
-            item.save()
-
-            serializer = CartItemSerializer(item)
-            return Response({
-                "cart_item": serializer.data,
-                "remaining_stock": product.count
-            })
 
 @method_decorator(name='delete', decorator=swagger_auto_schema(tags=['Cart']))
 class DeleteCartItemAPIView(generics.GenericAPIView):
@@ -257,31 +73,17 @@ class DeleteCartItemAPIView(generics.GenericAPIView):
 
     def delete(self, request, *args, **kwargs):
         product_id = request.data.get("product_id")
+
         if not product_id:
             return Response({"error": "product_id обязателен"}, status=400)
 
-        with transaction.atomic():
-            item = get_object_or_404(
-                CartItem.objects.select_for_update(),
-                product_id=product_id,
-                cart__user=request.user
-            )
-            product = Product.objects.select_for_update().get(id=product_id)
+        try:
+            remaining_stock = ApiCartService.delete_cart_item(request.user, product_id)
+        except ValidationError as e:
+            return Response({"error": str(e.detail)}, status=400)
+        except Product.DoesNotExist:
+            return Response({"error": "Товар не найден"}, status=404)
+        except CartItem.DoesNotExist:
+            return Response({"error": "Товар в корзине не найден"}, status=404)
 
-            returned = item.quantity
-            new_count = product.count + returned
-
-            if new_count > product.initial_count:
-                returned = product.initial_count - product.count
-                product.count = product.initial_count
-            else:
-                product.count = new_count
-
-            product.save()
-            item.delete()
-
-            return Response({
-                "success": True,
-                "returned_to_stock": returned,
-                "remaining_stock": product.count
-            })
+        return Response({"message": "Товар удален из корзины", "remaining_stock": remaining_stock})

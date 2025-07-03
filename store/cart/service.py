@@ -2,6 +2,7 @@ from catalog.models import Product
 from cart.models import Cart, CartItem
 from core.BaseService import BaseService
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 
 class CartService(BaseService):
@@ -69,3 +70,88 @@ class CartService(BaseService):
         product.count -= 1
         product.save()
         return True, None
+
+class ApiCartService(BaseService):
+    def add_product_to_cart(self, user, product_id, quantity):
+        if not product_id:
+            raise ValidationError("product_id обязателен")
+
+        product = get_object_or_404(Product, id=product_id)
+        cart, _ = Cart.objects.get_or_create(user=user)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+
+        available = product.count + (cart_item.quantity if not created else 0)
+        requested_total = (cart_item.quantity + quantity) if not created else quantity
+
+        if requested_total > available:
+            raise ValidationError(
+                f"Недостаточно товара. Доступно: {available - (cart_item.quantity if not created else 0)}")
+
+        cart_item.quantity = requested_total
+        cart_item.save()
+
+        product.count = available - requested_total
+        product.save()
+
+        return cart_item
+
+    def update_cart_item(user, product_id, quantity):
+        try:
+            quantity = int(quantity)
+            if quantity < 0:
+                raise ValueError
+        except ValueError:
+            raise ValidationError("Количество должно быть положительным числом")
+
+        with transaction.atomic():
+            item = get_object_or_404(
+                CartItem.objects.select_for_update(),
+                product_id=product_id,
+                cart__user=user
+            )
+            product = Product.objects.select_for_update().get(id=product_id)
+
+            delta = quantity - item.quantity
+
+            if delta > 0:
+                available = product.count
+                if delta > available:
+                    raise ValidationError(f"Недостаточно товара на складе. Доступно: {available}")
+                product.count -= delta
+                item.quantity = quantity
+
+            elif delta < 0:
+                returned = abs(delta)
+                if product.count + returned > product.initial_count:
+                    returned = product.initial_count - product.count
+                    item.quantity -= returned
+                else:
+                    item.quantity = quantity
+                product.count += returned
+
+            product.save()
+            item.save()
+
+        return item, product.count
+
+    def delete_cart_item(user, product_id):
+        with transaction.atomic():
+            item = get_object_or_404(
+                CartItem.objects.select_for_update(),
+                product_id=product_id,
+                cart__user=user
+            )
+            product = Product.objects.select_for_update().get(id=product_id)
+
+            returned = item.quantity
+            new_count = product.count + returned
+
+            if new_count > product.initial_count:
+                product.count = product.initial_count
+            else:
+                product.count = new_count
+
+            product.save()
+            item.delete()
+
+        return product.count
