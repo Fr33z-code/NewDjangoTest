@@ -32,16 +32,11 @@ urlpatterns = [
     path('orders/', include('orders.urls')),
     path('auth/', include('social_django.urls', namespace='social')),
     path('api/cart/', include('cart.api_urls')),
-    path('api/products/', ProductListCreateAPIView.as_view(), name='product-list-create'),
-    path('api/products/<int:id>/', ProductRetrieveUpdateDestroyAPIView.as_view(), name='product-detail'),
-    path('api/categories/', CategoryViewSet.as_view(), name='category_list'),
+    path('api/products/', include('catalog.api_urls')),
     path('api/order/', OrderViewSet.as_view(), name='create_order_for_user'),
 
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-
-    # path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    # path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 
     path('', include('catalog.urls')),
 ]
