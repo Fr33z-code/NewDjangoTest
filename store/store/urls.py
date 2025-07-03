@@ -20,10 +20,11 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=(permissions.AllowAny,)
 )
 
 urlpatterns = [
+    path('', include('catalog.urls')),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('logout/', LogoutView.as_view(), name='logout'),
@@ -31,12 +32,12 @@ urlpatterns = [
     path('cart/', include('cart.urls')),
     path('orders/', include('orders.urls')),
     path('auth/', include('social_django.urls', namespace='social')),
+
     path('api/cart/', include('cart.api_urls')),
     path('api/products/', include('catalog.api_urls')),
     path('api/order/', OrderViewSet.as_view(), name='create_order_for_user'),
+    path('api/categories/', CategoryViewSet.as_view(), name='api_categories_list'),
 
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-
-    path('', include('catalog.urls')),
 ]

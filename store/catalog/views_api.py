@@ -7,12 +7,14 @@ from .serializers import ProductSerializer, CategorySerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, status
 
+
 @method_decorator(name='get', decorator=swagger_auto_schema(tags=['Category']))
 class CategoryViewSet(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = 'id'
+
 
 @method_decorator(name='get', decorator=swagger_auto_schema(tags=['Products']))
 @method_decorator(name='post', decorator=swagger_auto_schema(tags=['Products']))
@@ -22,6 +24,7 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ProductFilter
+
 
 @method_decorator(name='get', decorator=swagger_auto_schema(tags=['Products']))
 @method_decorator(name='put', decorator=swagger_auto_schema(tags=['Products']))
