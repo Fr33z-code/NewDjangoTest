@@ -2,7 +2,9 @@ from core.BaseService import BaseService
 from cart.models import Cart, CartItem
 from orders.models import Order, OrderItem
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError
 
 class OrderService(BaseService):
     def __init__(self, user):
@@ -32,5 +34,42 @@ class OrderService(BaseService):
         ]
         OrderItem.objects.bulk_create(order_items)
         items.delete()
+
+        return order
+
+class ApiOrderService:
+
+    @staticmethod
+    def create_order(user, cart_item_ids=None):
+        try:
+            cart = Cart.objects.get(user=user)
+        except Cart.DoesNotExist:
+            raise ValidationError("Корзина не найдена")
+
+        cart_items = CartItem.objects.filter(cart=cart)
+
+        if cart_item_ids:
+            cart_items = cart_items.filter(id__in=cart_item_ids)
+            if not cart_items.exists():
+                raise ValidationError("Указанные товары не найдены в корзине")
+        elif not cart_items.exists():
+            raise ValidationError("Корзина пуста")
+
+        with transaction.atomic():
+            total = sum(item.product.price * item.quantity for item in cart_items)
+            order = Order.objects.create(user=user, total_price=total)
+
+            order_items = [
+                OrderItem(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    price_per_item=item.product.price
+                )
+                for item in cart_items
+            ]
+            OrderItem.objects.bulk_create(order_items)
+
+            cart_items.delete()
 
         return order
