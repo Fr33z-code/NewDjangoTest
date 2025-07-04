@@ -50,7 +50,6 @@ class UpdateCartItemAPIView(generics.GenericAPIView):
     def put(self, request, *args, **kwargs):
         product_id = request.data.get("product_id")
         quantity = request.data.get("quantity")
-
         if not product_id or quantity is None:
             return Response({"error": "product_id и quantity обязательны"}, status=400)
 
